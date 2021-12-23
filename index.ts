@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as http from 'http';
 import Server from './src/server';
+import DB from './src/mongodb';
 
 dotenv.config();
 
@@ -23,6 +24,17 @@ const server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+/**
+ * Connect MongoDB
+ */
+DB.connect()
+  .then(() => {
+    console.log("DB connected!");
+  })
+  .catch(err => {
+    console.log("DB connection error:", err);
+  })
 
 /**
  * Normalize a port into a number, string, or false.
