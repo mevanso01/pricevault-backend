@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as http from 'http';
-import Server from './src/server';
-import DB from './src/mongodb';
+import Server from './server';
+import DB from './mongodb';
 
 dotenv.config();
 

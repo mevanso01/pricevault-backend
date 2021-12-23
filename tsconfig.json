@@ -4,13 +4,14 @@
     "module": "commonjs",
     "lib": ["es2017"],
     "outDir": "dist",
+    "rootDir": "src",
     "sourceMap": false,
     "noImplicitAny": false,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true
   },
   "files": [
-    "index.ts"
+    "src/index.ts"
   ],
   "include": [
     "src/**/*.ts"

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      width: 560px;
+      text-align: center;
+      margin: auto;
+      font-family: arial;
+      border: 1px solid #b4b4b4;
+    }
+    div {
+      padding: 20px;
+      border-bottom: 1px solid #b4b4b4;
+    }
+    div:first-of-type {
+      background-color: #fff;
+    }
+    div:last-of-type {
+      border-bottom: none;
+      padding: 0;
+    }
+    div:last-of-type p {
+      font-size: 12px;
+    }
+    img.header-img {
+      height: 50px;
+      margin: auto;
+    }
+    h1 {
+      margin: 0;
+      color: #ef5350;
+      font-weight: lighter;
+      font-size: 25px;
+    }
+    p {
+      color: #787878;
+      font-size: 16px;
+    }
+    a {
+      color: #787878;
+    }
+    .link-button {
+      display: block;
+      width: 180px;
+      margin: auto;
+      text-decoration: none;
+      padding: 10px 20px;
+      background-color: #f75252;
+      color: #fff;
+      border-radius: 2px;
+    }
+    .link-button:visited,
+    .link-button:active,
+    .link-button:hover {
+      background-color: gray;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    {{> content}}
+  </div>
+
+  <div>
+    <p>&copy; 2021 PriceVault, All Rights Reserved.</p>
+  </div>
+</body>
+</html>
