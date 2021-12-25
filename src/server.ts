@@ -1,6 +1,7 @@
 import * as express from 'express';
 import * as logger from 'morgan';
 import * as cors from 'cors';
+import * as expressJwt from 'express-jwt';
 import AuthController from './controllers/auth';
 
 class Server {
@@ -32,10 +33,37 @@ class Server {
     })
 
     this.configureControllers();
+
+    // error handler
+    this.app.use(function (err, req, res, next) {
+      // set locals, only providing error in development
+      res.locals.message = err.message
+      res.locals.error = req.app.get('env') === 'development' ? err : {}
+
+      // render the error page
+      res.status(err.status || 500)
+      res.send({
+        error: err.toString()
+      })
+    })
   }
 
   configureControllers() {
-    this.app.use('/api/auth', (new AuthController()).router);
+    const authMiddleware = expressJwt({
+      secret: process.env.JWT_SECRET,
+      credentialsRequired: true,
+      algorithms: ['HS256'],
+      getToken: function fromHeaderOrQuerystring (req) {
+        if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+          return req.headers.authorization.split(' ')[1];
+        } else if (req.query && req.query.token) {
+          return req.query.token;
+        }
+        return null;
+      }
+    });
+
+    this.app.use('/api/auth', (new AuthController(authMiddleware)).router);
   }
 }
 

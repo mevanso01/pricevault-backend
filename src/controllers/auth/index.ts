@@ -3,16 +3,20 @@ import { body, validationResult } from 'express-validator';
 import * as Mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as md5 from 'md5';
+import * as jwt from 'jsonwebtoken';
 
 import User from "../../models/User";
 import Mailer from '../../utils/Mailer';
 
 export default class AuthController {
   router: any = null;
+  authMiddleware: any = null;
   saltRounds: Number = 10;
 
-  constructor() {
+  constructor(authMiddleware: any = null) {
     this.router = express.Router();
+
+    this.authMiddleware = authMiddleware;
 
     this.configure();
   }
@@ -70,7 +74,6 @@ export default class AuthController {
           // Send email verification email
           const mailer = new Mailer();
           const link = `${process.env.SERVER_URL}/api/auth/verify-email/${email_token}`;
-          console.log('Signup - verfication link:', link);
           try {
             await mailer.sendTemplate(email, 'email_verify', {
               displayName, link
@@ -126,12 +129,116 @@ export default class AuthController {
     /**
      * POST: login
      */
-    this.router.post('/login', (req: express.Request, res: express.Response) => {
+    this.router.post('/login',
+      body('email').notEmpty(),
+      body('password').notEmpty(),
+      async (req: express.Request, res: express.Response) => {
+        // Validate request payload
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.json({
+            success: false,
+            errors: [
+              'Invalid request payload'
+            ]
+          })
+        }
+
+        try {
+          const { email, password } = req.body;
+          const user = await User.findOne({
+            email,
+            email_verified: true
+          }).exec();
+
+          if (!user) {
+            return res.json({
+              success: false,
+              errors: [
+                'Invalid Email or Password'
+              ]
+            })
+          }
+
+          const passwordMatch = await bcrypt.compare(password, user.password);
+          if (!passwordMatch) {
+            return res.json({
+              success: false,
+              errors: [
+                'Invalid Email or Password'
+              ]
+            })
+          }
+
+          const jwt_ttl: any = process.env.JWT_TTL || 60;
+          const access_token = await jwt.sign({
+              id: user._id
+            },
+            process.env.JWT_SECRET, {
+              expiresIn: jwt_ttl * 60
+            });
+
+          const res_user = {
+            data: {
+              displayName: user.displayName,
+              email: user.email,
+            },
+            role: "user"
+          };
+
+          return res.json({
+            success: true,
+            access_token,
+            user: res_user
+          })
+        } catch (err) {
+          console.log(err);
+          const errors = ['Failed to login'];
+          if (err instanceof Mongoose.Error) {
+            errors.push(err.message)
+          } else {
+            errors.push(err)
+          }
+          res.json({
+            success: false,
+            errors
+          })
+        }
+      });
+
+    /**
+     * GET: get auth user data
+     */
+    this.router.get('/user', this.authMiddleware, async (req: express.Request, res: express.Response) => {
+      const user_id = req['user'].id;
+      const user = await User.findById(user_id).exec();
+
+      if (!user) {
+        return res.json({
+          success:false
+        });
+      }
+
+      const res_user = {
+        data: {
+          displayName: user.displayName,
+          email: user.email,
+        },
+        role: "user"
+      };
+
+      const jwt_ttl: any = process.env.JWT_TTL || 60;
+      const access_token = await jwt.sign({
+          id: user._id
+        },
+        process.env.JWT_SECRET, {
+          expiresIn: jwt_ttl * 60
+        });
+
       res.json({
-        success: false,
-        errors: [
-          'Invalid Email or Password'
-        ]
+        success: true,
+        access_token,
+        user: res_user
       })
     });
   }
