@@ -3,6 +3,7 @@ import * as logger from 'morgan';
 import * as cors from 'cors';
 import * as expressJwt from 'express-jwt';
 import AuthController from './controllers/auth';
+import SubmissionController from './controllers/submission';
 
 class Server {
   app: any = null;
@@ -64,6 +65,7 @@ class Server {
     });
 
     this.app.use('/api/auth', (new AuthController(authMiddleware)).router);
+    this.app.use('/api/submission', (new SubmissionController(authMiddleware)).router);
   }
 }
 
