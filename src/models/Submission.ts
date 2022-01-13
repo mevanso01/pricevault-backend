@@ -12,6 +12,7 @@ const submission = new Mongoose.Schema({
     forward: Number,
     userId: {
         type: Mongoose.Schema.Types.ObjectId,
+        ref: 'users',
         required: true
     },
 },{ timestamps: { createdAt: 'createdAt' } })
