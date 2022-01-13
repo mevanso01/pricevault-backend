@@ -180,7 +180,6 @@ export default class AuthController {
 
           const res_user = {
             data: {
-              id: user._id,
               displayName: user.displayName,
               email: user.email,
             },
@@ -222,7 +221,6 @@ export default class AuthController {
 
       const res_user = {
         data: {
-          id: user.id,
           displayName: user.displayName,
           email: user.email,
         },

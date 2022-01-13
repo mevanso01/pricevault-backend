@@ -24,33 +24,39 @@ export default class SubmissionController {
         this.router.post('/',
             body('items').notEmpty(),
             async (req: express.Request, res: express.Response) => {
+                // Validate request payload
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    return res.json({
+                        success: false,
+                        errors: ['Invalid request payload']
+                    })
+                }
+
                 try {
-                    var items = JSON.parse(req.body.items)
-                    Submission.insertMany(items, {ordered: false}, function (err: any, docs: any) {
-                        if (err){ 
-                            res.json({
-                                success: false,
-                                errors: [err]
-                            })
-                        } else {
-                            res.json({
-                                success: true,
-                                errors: []
-                            })
-                        }
+                    var items = JSON.parse(req.body.items);
+                    // Add userId field into each item
+                    var payload = items.map(obj=> ({ ...obj, userId: req.user.id }));
+                    
+                    await Submission.insertMany(payload, {ordered: false});
+                    
+                    res.json({
+                        success: true,
+                        errors: []
                     });
+                    
                 } catch (err) {
                     console.log(err);
                     const errors = ['Failed to store into database'];
                     if (err instanceof Mongoose.Error) {
-                        errors.push(err.message)
+                        errors.push(err.message);
                     } else {
-                        errors.push(err)
+                        errors.push(err);
                     }
                     res.json({
                         success: false,
                         errors
-                    })
+                    });
                 }
             }
         );
