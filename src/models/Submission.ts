@@ -15,6 +15,7 @@ const submission = new Mongoose.Schema({
     ref: 'users',
     required: true
   },
+  timeState: String,
 },{ timestamps: { createdAt: 'createdAt' } })
 
 export default Mongoose.model("submission", submission);
