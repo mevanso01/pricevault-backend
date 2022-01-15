@@ -37,17 +37,23 @@ export default class SubmissionController {
 
         try {
           const items = JSON.parse(req.body.items);
-          // Add userId field into each item
           const now = moment(new Date()).tz('America/New_York').format('yyyyMMDD');
-
-          items.forEach(async function(item){
-            // delete duplicated items
-            await Submission.deleteMany({ tradeId: item.tradeId, timeState: now });
-            // add a new item
-            item.timeState = now;
-            item.userId = req['user'].id;
-            await Submission.create(item);
+          var payload = [];
+          var tradeIdArr = [];
+          
+          items.map((item) => {
+            tradeIdArr.push(item.tradeId);
+            payload.push({
+              ...item,
+              tfHash: now,
+              userId: req['user'].id
+            })
           });
+          
+          // Delete old one
+          await Submission.deleteMany({ $and: [ { tradeId: { $in: tradeIdArr } }, { tfHash: now }, { userId: req['user'].id }] });
+          // Add new one
+          await Submission.insertMany(payload, {ordered: false});
 
           res.json({
             success: true,
@@ -70,9 +76,9 @@ export default class SubmissionController {
     );
 
     /**
-     * POST: check duplicated timestate
+     * POST: check duplicated timeframe
      */
-    this.router.post('/checkTimeState',
+    this.router.post('/check-time-frame',
       body('items').notEmpty(),
       async (req: express.Request, res: express.Response) => {
         // Validate request payload
@@ -89,7 +95,7 @@ export default class SubmissionController {
           // Add userId field into each item
           const now = moment(new Date()).tz('America/New_York').format('yyyyMMDD');
 
-          const duplicates = await Submission.find({ $and: [ { tradeId: { $in: items } }, { timeState: now }] }).exec();
+          const duplicates = await Submission.find({ $and: [ { tradeId: { $in: items } }, { tfHash: now }, { userId: req['user'].id }] }).exec();
 
           res.json({
             success: true,
