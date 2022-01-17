@@ -42,7 +42,7 @@ export default class AuthController {
         }
 
         try {
-          const { displayName, email, password } = req.body;
+          const { displayName, email, password, role } = req.body;
 
           // Check if email is duplicated
           const duplicates = await User.find({
@@ -64,7 +64,7 @@ export default class AuthController {
           const email_token_exp_at = new Date();
           email_token_exp_at.setHours(email_token_exp_at.getHours() + Number(process.env.EMAIL_TOKEN_TIMEOUT || 24));
           const user = await User.create({
-            displayName, email,
+            displayName, email, role,
             password: hashed,
             email_verified: false,
             email_token,
@@ -183,7 +183,7 @@ export default class AuthController {
               displayName: user.displayName,
               email: user.email,
             },
-            role: "user"
+            role: user.role
           };
 
           return res.json({
@@ -224,7 +224,7 @@ export default class AuthController {
           displayName: user.displayName,
           email: user.email,
         },
-        role: "user"
+        role: user.role
       };
 
       const jwt_ttl: any = process.env.JWT_TTL || 60;
