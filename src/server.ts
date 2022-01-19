@@ -4,6 +4,9 @@ import * as cors from 'cors';
 import * as expressJwt from 'express-jwt';
 import AuthController from './controllers/auth';
 import SubmissionController from './controllers/submission';
+import AssetController from './controllers/asset';
+import InstrumentTypeController from './controllers/instrumentType';
+import TradeController from './controllers/trade';
 
 class Server {
   app: any = null;
@@ -66,6 +69,9 @@ class Server {
 
     this.app.use('/api/auth', (new AuthController(authMiddleware)).router);
     this.app.use('/api/submission', (new SubmissionController(authMiddleware)).router);
+    this.app.use('/api/asset', (new AssetController(authMiddleware)).router);
+    this.app.use('/api/instrument', (new InstrumentTypeController(authMiddleware)).router);
+    this.app.use('/api/trade', (new TradeController(authMiddleware)).router);
   }
 }
 
