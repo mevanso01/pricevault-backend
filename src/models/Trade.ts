@@ -4,7 +4,7 @@ const trade = new Mongoose.Schema({
   tradeId: {
     type: Number,
     required: true,
-    // unique: true
+    unique: true
   },
   underlying: {
     type: String
@@ -34,7 +34,7 @@ const trade = new Mongoose.Schema({
     required: true
   },
   strikeFixed: {
-    type: String
+    type: Number
   },
   exerciseType: {
     type: String

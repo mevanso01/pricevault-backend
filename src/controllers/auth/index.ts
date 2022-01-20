@@ -172,7 +172,8 @@ export default class AuthController {
 
           const jwt_ttl: any = process.env.JWT_TTL || 60;
           const access_token = await jwt.sign({
-              id: user._id
+              id: user._id,
+              role: user.role
             },
             process.env.JWT_SECRET, {
               expiresIn: jwt_ttl * 60
@@ -229,7 +230,8 @@ export default class AuthController {
 
       const jwt_ttl: any = process.env.JWT_TTL || 60;
       const access_token = await jwt.sign({
-          id: user._id
+          id: user._id,
+          role: user.role
         },
         process.env.JWT_SECRET, {
           expiresIn: jwt_ttl * 60

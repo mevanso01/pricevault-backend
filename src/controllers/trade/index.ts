@@ -2,6 +2,7 @@ import * as express from 'express';
 import { body, validationResult } from 'express-validator';
 import * as Mongoose from 'mongoose';
 import 'moment-timezone';
+import { adminMiddleware } from './../../middlewares';
 
 import Trade from "../../models/Trade";
 
@@ -14,6 +15,7 @@ export default class TradeController {
     this.authMiddleware = authMiddleware;
 
     this.router.use(this.authMiddleware);
+    this.router.use(adminMiddleware);
 
     this.configure();
   }
@@ -52,7 +54,7 @@ export default class TradeController {
           });
      
           // Delete old one
-          await Trade.deleteMany({ $and: [ { tradeId: { $in: tradeIdArr } }, { instrumentTypeId }, { userId: req['user'].id }] });
+          await Trade.deleteMany({ $and: [ { tradeId: { $in: tradeIdArr } }] });
           // Add new one
           await Trade.insertMany(payload, {ordered: false});
 
@@ -96,7 +98,7 @@ export default class TradeController {
           const items = JSON.parse(req.body.items);
           const instrumentTypeId = req.body.instrumentTypeId;
 
-          const duplicates = await Trade.find({ $and: [ { tradeId: { $in: items } }, { instrumentTypeId }, { userId: req['user'].id }] }).exec();
+          const duplicates = await Trade.find({ $and: [ { tradeId: { $in: items } }] }).exec();
 
           res.json({
             success: true,

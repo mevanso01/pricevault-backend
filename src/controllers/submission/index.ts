@@ -121,19 +121,33 @@ export default class SubmissionController {
      * GET: get all submissions
      */
     this.router.get('/', this.authMiddleware, async (req: express.Request, res: express.Response) => {
-      const submission = await Submission.find().exec();
+      try {
+        const submission = await Submission.find().exec();
 
-      if (!submission) {
-        return res.json({
-          success:false,
-          items: []
+        if (!submission) {
+          return res.json({
+            success:false,
+            items: []
+          });
+        }
+
+        res.json({
+          success: true,
+          items: submission
+        })
+      } catch(err) {
+        console.log(err);
+        const errors = ['Failed to fetch submission data.'];
+        if (err instanceof Mongoose.Error) {
+          errors.push(err.message);
+        } else {
+          errors.push(err);
+        }
+        res.json({
+          success: false,
+          errors
         });
       }
-
-      res.json({
-        success: true,
-        items: submission
-      })
     });
   }
 }
