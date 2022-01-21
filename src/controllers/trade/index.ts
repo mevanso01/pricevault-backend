@@ -15,7 +15,7 @@ export default class TradeController {
     this.authMiddleware = authMiddleware;
 
     this.router.use(this.authMiddleware);
-    this.router.use(adminMiddleware);
+    // this.router.use(adminMiddleware);
 
     this.configure();
   }
@@ -24,7 +24,7 @@ export default class TradeController {
     /**
      * POST: submit trades
      */
-    this.router.post('/',
+    this.router.post('/', adminMiddleware,
       body('items').notEmpty(),
       body('instrumentTypeId').notEmpty(),
       async (req: express.Request, res: express.Response) => {
@@ -81,7 +81,7 @@ export default class TradeController {
     /**
      * POST: check duplicated trades
      */
-    this.router.post('/check-trades',
+    this.router.post('/check-trades', adminMiddleware,
       body('items').notEmpty(),
       body('instrumentTypeId').notEmpty(),
       async (req: express.Request, res: express.Response) => {
@@ -119,5 +119,38 @@ export default class TradeController {
         }
       }
     );
+
+    /**
+     * GET: get all trades [this is for user role]
+     */
+    this.router.get('/', this.authMiddleware, async (req: express.Request, res: express.Response) => {
+      try {
+        const trades = await Trade.find().exec();
+
+        if (!trades) {
+          return res.json({
+            success:false,
+            items: []
+          });
+        }
+
+        res.json({
+          success: true,
+          items: trades
+        })
+      } catch(err) {
+        console.log(err);
+        const errors = ['Failed to fetch trade data.'];
+        if (err instanceof Mongoose.Error) {
+          errors.push(err.message);
+        } else {
+          errors.push(err);
+        }
+        res.json({
+          success: false,
+          errors
+        });
+      }
+    });
   }
 }
