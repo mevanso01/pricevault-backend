@@ -5,6 +5,7 @@ import * as moment from 'moment';
 import 'moment-timezone';
 
 import Submission from "../../models/Submission";
+import Trade from "../../models/Trade";
 
 export default class SubmissionController {
   router: any = null;
@@ -76,9 +77,9 @@ export default class SubmissionController {
     );
 
     /**
-     * POST: check duplicated timeframe
+     * POST: check duplicated items in timeframe or whole database
      */
-    this.router.post('/check-time-frame',
+    this.router.post('/check-validate',
       body('items').notEmpty(),
       async (req: express.Request, res: express.Response) => {
         // Validate request payload
@@ -95,11 +96,17 @@ export default class SubmissionController {
           // Add userId field into each item
           const now = moment(new Date()).tz('America/New_York').format('yyyyMMDD');
 
-          const duplicates = await Submission.find({ $and: [ { tradeId: { $in: items } }, { tfHash: now }, { userId: req['user'].id }] }).exec();
+          const tf_duplicates_ids = await Submission.find({ $and: [{ tradeId: { $in: items } }, { tfHash: now }, { userId: req['user'].id }] }, 'tradeId').exec();
+          const valid_items = await Trade.find({ tradeId: { $in: items } }, 'tradeId').exec();
+          const valid_ids = valid_items.map(item => item.tradeId);
+          const invalid_ids = items.filter(item => !valid_ids.includes(item));
 
           res.json({
             success: true,
-            duplicates: duplicates.length
+            result: {
+              tf_duplicates_ids,
+              invalid_ids
+            }
           });
         } catch (err) {
           console.log(err);
