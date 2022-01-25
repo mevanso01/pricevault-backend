@@ -55,7 +55,7 @@ const trade = new Mongoose.Schema({
   },
   instrumentTypeId: {
     type: Mongoose.Schema.Types.ObjectId,
-    ref: 'instrumentTypes',
+    ref: 'instrumentType',
   },
   userId: {
     type: Mongoose.Schema.Types.ObjectId,

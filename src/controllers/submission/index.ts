@@ -6,6 +6,7 @@ import 'moment-timezone';
 
 import Submission from "../../models/Submission";
 import Trade from "../../models/Trade";
+import InstrumentType from "../../models/InstrumentType";
 
 export default class SubmissionController {
   router: any = null;
@@ -93,10 +94,17 @@ export default class SubmissionController {
 
         try {
           const items = JSON.parse(req.body.items);
-          // Add userId field into each item
-          const now = moment(new Date()).tz('America/New_York').format('yyyyMMDD');
 
-          const tf_duplicates_ids = await Submission.find({ $and: [{ tradeId: { $in: items } }, { tfHash: now }, { userId: req['user'].id }] }, 'tradeId').exec();
+          // Check unique instrument type for all trades
+          const ins_type_ids = await Trade.find({ tradeId: { $in: items } }).populate('instrumentTypeId').exec();
+          const unique_ins_type = ins_type_ids.every(v => String(v.instrumentTypeId) == String(ins_type_ids[0].instrumentTypeId));
+          // Check duplicated trades within time frame
+          const serviceFreq = ins_type_ids[0].instrumentTypeId.serviceFrequency;
+          let tf = serviceFreq == "Monthly" 
+            ? moment(new Date()).tz('America/New_York').format('yyyyMM') // serviceFrequency = "Monthly"
+            : moment(new Date()).tz('America/New_York').format('yyyyMMDD'); // serviceFrequency = "Daily"
+          const tf_duplicates_ids = await Submission.find({ $and: [{ tradeId: { $in: items } }, { tfHash: { $regex: tf + '.*' } }, { userId: req['user'].id }] }, 'tradeId').exec();
+          // Check unique trade id for trade id list from admin side
           const valid_items = await Trade.find({ tradeId: { $in: items } }, 'tradeId').exec();
           const valid_ids = valid_items.map(item => item.tradeId);
           const invalid_ids = items.filter(item => !valid_ids.includes(item));
@@ -104,6 +112,7 @@ export default class SubmissionController {
           res.json({
             success: true,
             result: {
+              unique_ins_type,
               tf_duplicates_ids,
               invalid_ids
             }
