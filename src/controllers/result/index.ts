@@ -77,6 +77,7 @@ export default class ResultController {
               success: false,
               items: {
                 data: [],
+                dataRange: [],
                 xRange: []
               }
             });

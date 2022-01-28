@@ -102,7 +102,7 @@ export default class SubmissionController {
           let tf = serviceFreq == "Monthly"
             ? moment(new Date()).tz('America/New_York').format('yyyyMM') // serviceFrequency = "Monthly"
             : moment(new Date()).tz('America/New_York').format('yyyyMMDD'); // serviceFrequency = "Daily"
-          const tf_duplicates_ids = await Submission.find({ $and: [{ tradeId: { $in: items } }, { tfHash: { $regex: tf + '.*' } }, { userId: req['user'].id }] }, 'tradeId').exec();
+          const tf_duplicates_ids = await Submission.find({ $and: [{ tradeId: { $in: items } }, { tfHash: { $regex: tf, $options: "i" } }, { userId: req['user'].id }] }, 'tradeId').exec();
           // Check unique trade id for trade id list from admin side
           const valid_items = await Trade.find({ tradeId: { $in: items } }, 'tradeId').exec();
           const valid_ids = valid_items.map(item => item.tradeId);

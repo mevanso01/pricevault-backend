@@ -132,12 +132,14 @@ class AllStrikesFunc {
     const sortedByName = Z.sort((a, b) => a.expirySort - b.expirySort, data);
     const tenorRange = this.getTenorRange(sorted);
     const groupObj = Z.groupBy(x => x.expiry, sortedByName);
+    const AllDataRange = [];
     for (const [key, value] of Object.entries(groupObj) as any) {
       const stdArray = [];
       tenorRange.forEach((tr) => {
         const find = value.find(item => item.tenor == tr);
         if (find) {
-          stdArray.push(find.std)
+          stdArray.push(find.std?.toFixed(2));
+          AllDataRange.push(find.std?.toFixed(2));
         } else {
           stdArray.push(null);
         }
@@ -150,7 +152,8 @@ class AllStrikesFunc {
 
     return {
       data: result,
-      xRange: tenorRange
+      dataRange: Z.getRange(AllDataRange),
+      xRange: tenorRange,
     }
   }
 }
