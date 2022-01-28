@@ -12,10 +12,10 @@ const submission = new Mongoose.Schema({
   forward: Number,
   userId: {
     type: Mongoose.Schema.Types.ObjectId,
-    ref: 'users',
+    ref: 'user',
     required: true
   },
   tfHash: String,
-},{ timestamps: { createdAt: 'createdAt' } })
+}, { timestamps: { createdAt: 'createdAt' } })
 
 export default Mongoose.model("submission", submission);

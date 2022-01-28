@@ -6,7 +6,9 @@ import 'moment-timezone';
 
 import Submission from "../../models/Submission";
 import Trade from "../../models/Trade";
-import InstrumentType from "../../models/InstrumentType";
+import User from "../../models/User";
+
+import SubmissionFunc = require('../../functions/submissionFunc');
 
 export default class SubmissionController {
   router: any = null;
@@ -42,7 +44,7 @@ export default class SubmissionController {
           const now = moment(new Date()).tz('America/New_York').format('yyyyMMDD');
           var payload = [];
           var tradeIdArr = [];
-          
+
           items.map((item) => {
             tradeIdArr.push(item.tradeId);
             payload.push({
@@ -51,11 +53,11 @@ export default class SubmissionController {
               userId: req['user'].id
             })
           });
-          
+
           // Delete old one
-          await Submission.deleteMany({ $and: [ { tradeId: { $in: tradeIdArr } }, { tfHash: now }, { userId: req['user'].id }] });
+          await Submission.deleteMany({ $and: [{ tradeId: { $in: tradeIdArr } }, { tfHash: now }, { userId: req['user'].id }] });
           // Add new one
-          await Submission.insertMany(payload, {ordered: false});
+          await Submission.insertMany(payload, { ordered: false });
 
           res.json({
             success: true,
@@ -100,7 +102,7 @@ export default class SubmissionController {
           const unique_ins_type = ins_type_ids.every(v => String(v.instrumentTypeId) == String(ins_type_ids[0].instrumentTypeId));
           // Check duplicated trades within time frame
           const serviceFreq = ins_type_ids[0].instrumentTypeId.serviceFrequency;
-          let tf = serviceFreq == "Monthly" 
+          let tf = serviceFreq == "Monthly"
             ? moment(new Date()).tz('America/New_York').format('yyyyMM') // serviceFrequency = "Monthly"
             : moment(new Date()).tz('America/New_York').format('yyyyMMDD'); // serviceFrequency = "Daily"
           const tf_duplicates_ids = await Submission.find({ $and: [{ tradeId: { $in: items } }, { tfHash: { $regex: tf + '.*' } }, { userId: req['user'].id }] }, 'tradeId').exec();
@@ -142,7 +144,7 @@ export default class SubmissionController {
 
         if (!submission) {
           return res.json({
-            success:false,
+            success: false,
             items: []
           });
         }
@@ -151,7 +153,76 @@ export default class SubmissionController {
           success: true,
           items: submission
         })
-      } catch(err) {
+      } catch (err) {
+        console.log(err);
+        const errors = ['Failed to fetch submission data.'];
+        if (err instanceof Mongoose.Error) {
+          errors.push(err.message);
+        } else {
+          errors.push(err);
+        }
+        res.json({
+          success: false,
+          errors
+        });
+      }
+    });
+
+    /**
+     * GET: get all submissions by instrument type and timeframe
+     */
+    this.router.get('/:type', this.authMiddleware, async (req: express.Request, res: express.Response) => {
+      try {
+        const instrumentTypeId = req.params.type;
+        // Get all users
+        const submissionsByUser = await User.find().exec();
+        // Get all submissions
+        const allSubmissions = await Submission.find().exec();
+        // Get available tradeIds by selected instrument type
+        const tradesByInsType = await Trade.find({ instrumentTypeId: instrumentTypeId }).exec();
+        let tradeIds = [];
+        tradesByInsType.forEach((item) => {
+          // Filtering tradeId by associated user count (at least 4 users)
+          const sub = allSubmissions.filter(sub => sub.tradeId == item.tradeId);
+          const uniqueUsers = Array.from(new Set(sub.map(s => s.userId)));
+          if (uniqueUsers.length < 4) return;
+          tradeIds.push(item.tradeId);
+        });
+        // Get submissions by filtering tradeId
+        // TODO: Filtering tfHash by selected date or month (daily or monthly)
+        const submissions = await Submission.find({ tradeId: { $in: tradeIds } }).exec();
+
+        if (tradeIds.length === 0 || !submissions) {
+          return res.json({
+            success: false,
+            items: {
+              data: [],
+              xRange: []
+            }
+          });
+        }
+        // Get valid submission list per users
+        let data = [];
+        submissionsByUser.map(async (item) => {
+          const userSubmissions = submissions.filter(sub => String(sub.userId) == String(item._id));
+          if (userSubmissions.length > 0) {
+            const dataItem = {
+              userId: item._id,
+              submissions: userSubmissions
+            }
+            data.push(dataItem);
+          }
+        })
+        // Call main calculation function
+        const Calc = new SubmissionFunc(tradesByInsType);
+        const result = Calc.main(data);
+        console.log(result);
+
+        res.json({
+          success: true,
+          items: result
+        })
+      } catch (err) {
         console.log(err);
         const errors = ['Failed to fetch submission data.'];
         if (err instanceof Mongoose.Error) {

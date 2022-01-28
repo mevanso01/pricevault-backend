@@ -16,7 +16,7 @@ export default class InstrumentTypeController {
     this.authMiddleware = authMiddleware;
 
     this.router.use(this.authMiddleware);
-    this.router.use(adminMiddleware);
+    // this.router.use(adminMiddleware);
 
     this.configure();
   }
@@ -25,7 +25,7 @@ export default class InstrumentTypeController {
     /**
      * POST: create a instrument
      */
-    this.router.post('/',
+    this.router.post('/', adminMiddleware,
       body('name').notEmpty(),
       body('currency').notEmpty(),
       body('serviceFrequency').notEmpty(),
@@ -59,12 +59,12 @@ export default class InstrumentTypeController {
 
           // Add new one
           const instrumentType = await InstrumentType.create({
-            name, 
-            currency, 
-            serviceFrequency, 
-            pricingTZ, 
-            pricingTime, 
-            assetId, 
+            name,
+            currency,
+            serviceFrequency,
+            pricingTZ,
+            pricingTime,
+            assetId,
             userId
           });
 
@@ -92,7 +92,7 @@ export default class InstrumentTypeController {
     /**
      * PUT: update a instrument
      */
-    this.router.put('/',
+    this.router.put('/', adminMiddleware,
       body('_id').notEmpty(),
       body('name').notEmpty(),
       body('currency').notEmpty(),
@@ -109,14 +109,14 @@ export default class InstrumentTypeController {
         }
 
         try {
-          const { 
-            _id, 
-            name, 
-            currency, 
-            serviceFrequency, 
-            pricingTZ, 
-            pricingTime, 
-            assetId 
+          const {
+            _id,
+            name,
+            currency,
+            serviceFrequency,
+            pricingTZ,
+            pricingTime,
+            assetId
           } = req.body;
           const userId = req['user'].id;
 
@@ -134,7 +134,7 @@ export default class InstrumentTypeController {
           }
 
           // Add new one
-          await InstrumentType.findByIdAndUpdate(_id, 
+          await InstrumentType.findByIdAndUpdate(_id,
             { name, currency, serviceFrequency, pricingTZ, pricingTime, assetId, userId });
 
           res.json({
@@ -160,7 +160,7 @@ export default class InstrumentTypeController {
     /**
      * POST: check if instrument types has related trades
      */
-    this.router.post('/check',
+    this.router.post('/check', adminMiddleware,
       body('items').notEmpty(),
       async (req: express.Request, res: express.Response) => {
         // Validate request payload
@@ -175,7 +175,7 @@ export default class InstrumentTypeController {
         try {
           const items = req.body.items;
           // Check if instrument types has related trades
-          const related = await Trade.find({ instrumentTypeId: { $in: items }});
+          const related = await Trade.find({ instrumentTypeId: { $in: items } });
 
           return res.json({
             success: true,
@@ -200,7 +200,7 @@ export default class InstrumentTypeController {
     /**
      * POST: delete multiple instrument
      */
-    this.router.post('/remove',
+    this.router.post('/remove', adminMiddleware,
       body('items').notEmpty(),
       async (req: express.Request, res: express.Response) => {
         // Validate request payload
@@ -216,7 +216,7 @@ export default class InstrumentTypeController {
           const items = req.body.items;
 
           // Delete instrument types
-          await InstrumentType.deleteMany({ $and: [ { _id: { $in: items } }, { userId: req['user'].id }] });
+          await InstrumentType.deleteMany({ $and: [{ _id: { $in: items } }, { userId: req['user'].id }] });
 
           res.json({
             success: true,
@@ -247,7 +247,7 @@ export default class InstrumentTypeController {
 
         if (!instruments) {
           return res.json({
-            success:false,
+            success: false,
             items: []
           });
         }
@@ -256,7 +256,7 @@ export default class InstrumentTypeController {
           success: true,
           items: instruments
         })
-      } catch(err) {
+      } catch (err) {
         console.log(err);
         const errors = ['Failed to fetch instrument type data.'];
         if (err instanceof Mongoose.Error) {
