@@ -7,6 +7,7 @@ import SubmissionController from './controllers/submission';
 import AssetController from './controllers/asset';
 import InstrumentTypeController from './controllers/instrumentType';
 import TradeController from './controllers/trade';
+import ResultController from './controllers/result';
 
 class Server {
   app: any = null;
@@ -57,7 +58,7 @@ class Server {
       secret: process.env.JWT_SECRET,
       credentialsRequired: true,
       algorithms: ['HS256'],
-      getToken: function fromHeaderOrQuerystring (req) {
+      getToken: function fromHeaderOrQuerystring(req) {
         if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
           return req.headers.authorization.split(' ')[1];
         } else if (req.query && req.query.token) {
@@ -72,6 +73,7 @@ class Server {
     this.app.use('/api/asset', (new AssetController(authMiddleware)).router);
     this.app.use('/api/instrument', (new InstrumentTypeController(authMiddleware)).router);
     this.app.use('/api/trade', (new TradeController(authMiddleware)).router);
+    this.app.use('/api/result', (new ResultController(authMiddleware)).router);
   }
 }
 

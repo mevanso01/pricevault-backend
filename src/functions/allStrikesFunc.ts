@@ -1,10 +1,14 @@
 const Z = require("zebras");
 
-class SubmissionFunc {
+class AllStrikesFunc {
   public _users;
+  public _userId;
   public _trades;
-  constructor(data) {
-    this._trades = data;
+  public _multify = 1.5;
+
+  constructor(userId, trades) {
+    this._userId = userId;
+    this._trades = trades;
   }
 
   main(baseData) {
@@ -12,7 +16,17 @@ class SubmissionFunc {
     // If user is less than 4, cancel all calculation.
     if (this._users.length < 4) return [];
     const meanStd = this.getMeanStd(baseData);
-    const stdAnaly = this.getStdAnalysis(meanStd);
+    const userSubmission = this.getUserSubmission(baseData);
+    if (userSubmission.length === 0) {
+      return {
+        data: [],
+        xRange: []
+      }
+    }
+    const userMeanStd = this.getUserMeanStd(meanStd, userSubmission);
+    const stdAnaly = this.getStdAnalysis(userMeanStd, userSubmission);
+    console.log(stdAnaly);
+
     const stdSum = this.getStdSum(stdAnaly);
     const result = this.getFinalResult(stdSum);
     return result;
@@ -37,9 +51,39 @@ class SubmissionFunc {
     return Z.gbDescribe("valuation", Z.groupBy(d => d.tradeId, concated))
   }
 
-  getStdAnalysis(data) {
+  getUserSubmission(data) {
+    const userData = data.find(item => item.userId == this._userId);
+    return userData ? userData.submissions : [];
+  }
+
+  getUserMeanStd(allData, userData) {
+    let userMeanStd = []
+    allData.map(item => {
+      const avgFromAll = item.mean;
+      const stdFromAll = item.std;
+      const submissionFromUser = userData.find(u => u.tradeId == +(item.group));
+      if (submissionFromUser) {
+        const valFromUser = submissionFromUser.valuation;
+        const isInclueds = Math.abs(valFromUser - avgFromAll) < stdFromAll * this._multify;
+        const userAvg = isInclueds ? avgFromAll : 'wat';
+        const userstd = isInclueds ? stdFromAll : 'wat';
+
+        userMeanStd.push({
+          tradeId: submissionFromUser.tradeId,
+          mean: userAvg,
+          std: userstd
+        });
+      }
+    });
+
+    return userMeanStd;
+  }
+
+  getStdAnalysis(data, userSubs) {
     data.forEach((item) => {
-      const trade = this._trades.find(t => t.tradeId == +item.group);
+      const userSub = userSubs.find(s => s.tradeId == item.tradeId);
+      const trade = this._trades.find(t => t.tradeId == item.tradeId);
+      item.std = item.mean == 'wat' ? 2 : Math.abs((userSub.valuation - item.mean) / item.std);
       item.expiry = trade.expiry;
       item.tenor = trade.tenor;
       item.strikeRelative = trade.strikeRelative;
@@ -111,4 +155,4 @@ class SubmissionFunc {
   }
 }
 
-export = SubmissionFunc;
+export = AllStrikesFunc;
