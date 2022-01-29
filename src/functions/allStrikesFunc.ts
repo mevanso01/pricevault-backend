@@ -65,8 +65,10 @@ class AllStrikesFunc {
       if (submissionFromUser) {
         const valFromUser = submissionFromUser.valuation;
         const isInclueds = Math.abs(valFromUser - avgFromAll) < stdFromAll * this._multify;
-        const userAvg = isInclueds ? avgFromAll : 'wat';
-        const userstd = isInclueds ? stdFromAll : 'wat';
+        // const userAvg = isInclueds ? avgFromAll : 'wat';
+        // const userstd = isInclueds ? stdFromAll : 'wat';
+        const userAvg = avgFromAll;
+        const userstd = stdFromAll;
 
         userMeanStd.push({
           tradeId: submissionFromUser.tradeId,
@@ -83,7 +85,7 @@ class AllStrikesFunc {
     data.forEach((item) => {
       const userSub = userSubs.find(s => s.tradeId == item.tradeId);
       const trade = this._trades.find(t => t.tradeId == item.tradeId);
-      item.std = item.mean == 'wat' ? 2 : Math.abs((userSub.valuation - item.mean) / item.std);
+      item.std = item.mean == 'wat' ? 2 : (item.std == 0 ? 0 : Math.abs((userSub.valuation - item.mean) / item.std));
       item.expiry = trade.expiry;
       item.tenor = trade.tenor;
       item.strikeRelative = trade.strikeRelative;

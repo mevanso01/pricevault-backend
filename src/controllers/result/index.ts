@@ -69,8 +69,8 @@ export default class ResultController {
 
           // Get submissions by filtering tradeId
           // TODO: Filtering tfHash by selected date or month (daily or monthly)
-          // const submissions = await Submission.find({ $and: [{ tradeId: { $in: tradeIds } }, { tfHash: { $regex: tfHash, $options: "i" } }] }).exec();
-          const submissions = await Submission.find({ $and: [{ tradeId: { $in: tradeIds } }] }).exec();
+          const submissions = await Submission.find({ $and: [{ tradeId: { $in: tradeIds } }, { tfHash: { $regex: tfHash, $options: "i" } }] }).exec();
+          // const submissions = await Submission.find({ $and: [{ tradeId: { $in: tradeIds } }] }).exec();
 
           if (tradeIds.length === 0 || !submissions || submissions.length === 0) {
             return res.json({
