@@ -100,14 +100,14 @@ class AllStrikesFunc {
     data.forEach(function (item) {
       const findOne = result.find(x => x.expiry == item.expiry && x.tenor == item.tenor);
       if (findOne) {
-        findOne.std += +(item.std.toFixed(2));
+        findOne.std += +(item.std);
       } else {
         result.push({
           expiry: item.expiry,
           expirySort: thisOne.getToConvertMonth(item.expiry),
           tenor: item.tenor,
           tenorSort: thisOne.getToConvertMonth(item.tenor),
-          std: +(item.std.toFixed(2))
+          std: +(item.std)
         });
       }
     });
