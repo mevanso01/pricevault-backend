@@ -4,6 +4,7 @@ import * as Mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as md5 from 'md5';
 import * as jwt from 'jsonwebtoken';
+import * as twilioClient from 'twilio';
 
 import User from "../../models/User";
 import Mailer from '../../utils/Mailer';
@@ -12,12 +13,12 @@ export default class AuthController {
   router: any = null;
   authMiddleware: any = null;
   saltRounds: Number = 10;
+  twilioClient: any = null;
 
   constructor(authMiddleware: any = null) {
     this.router = express.Router();
-
     this.authMiddleware = authMiddleware;
-
+    this.twilioClient = twilioClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     this.configure();
   }
 
@@ -172,26 +173,47 @@ export default class AuthController {
 
           const jwt_ttl: any = process.env.JWT_TTL || 60;
           const access_token = await jwt.sign({
-              id: user._id,
-              role: user.role
-            },
+            id: user._id,
+            role: user.role
+          },
             process.env.JWT_SECRET, {
-              expiresIn: jwt_ttl * 60
-            });
+            expiresIn: jwt_ttl * 60
+          });
 
           const res_user = {
             data: {
+              id: user._id,
               displayName: user.displayName,
               email: user.email,
             },
             role: user.role
           };
 
-          return res.json({
-            success: true,
-            access_token,
-            user: res_user
-          })
+          // Send phone verification code
+          try {
+            // await this.twilioClient
+            //   .verify
+            //   .services(process.env.TWILIO_SERVICE_ID)
+            //   .verifications
+            //   .create({
+            //     to: `+${user.phone || process.env.TWILIO_TEST_NUMBER}`,
+            //     channel: 'sms'
+            //   })
+
+            res.json({
+              success: true,
+              access_token,
+              user: res_user,
+              enabledVerify: true
+            })
+          } catch (err) {
+            console.log(err);
+            res.json({
+              success: false,
+              errors: ['Failed to send verification code']
+            })
+          }
+
         } catch (err) {
           console.log(err);
           const errors = ['Failed to login'];
@@ -216,7 +238,7 @@ export default class AuthController {
 
       if (!user) {
         return res.json({
-          success:false
+          success: false
         });
       }
 
@@ -230,12 +252,12 @@ export default class AuthController {
 
       const jwt_ttl: any = process.env.JWT_TTL || 60;
       const access_token = await jwt.sign({
-          id: user._id,
-          role: user.role
-        },
+        id: user._id,
+        role: user.role
+      },
         process.env.JWT_SECRET, {
-          expiresIn: jwt_ttl * 60
-        });
+        expiresIn: jwt_ttl * 60
+      });
 
       res.json({
         success: true,
@@ -243,5 +265,74 @@ export default class AuthController {
         user: res_user
       })
     });
+
+    // Verify phone code
+    this.router.post('/verify',
+      body('userId').notEmpty(),
+      body('code').notEmpty(),
+      async (req: express.Request, res: express.Response) => {
+        // Validate request payload
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.json({
+            success: false,
+            errors: ['Invalid request payload']
+          })
+        }
+
+        try {
+          const { userId, code } = req.body;
+
+          const user = await User.findOne({
+            _id: userId
+          }).exec();
+
+          const jwt_ttl: any = process.env.JWT_TTL || 60;
+          const access_token = await jwt.sign({
+            id: user._id,
+            role: user.role
+          },
+            process.env.JWT_SECRET, {
+            expiresIn: jwt_ttl * 60
+          });
+
+          const res_user = {
+            data: {
+              displayName: user.displayName,
+              email: user.email,
+            },
+            role: user.role
+          };
+
+          try {
+            // await this.twilioClient
+            //   .verify
+            //   .services(process.env.TWILIO_SERVICE_ID)
+            //   .verificationChecks
+            //   .create({
+            //     to: `+${user.phone || process.env.TWILIO_TEST_NUMBER}`,
+            //     code: code
+            //   })
+
+            res.json({
+              success: true,
+              access_token,
+              user: res_user
+            })
+          } catch (err) {
+            console.log(err);
+            res.json({
+              success: false,
+              errors: ['Failed to verify the code']
+            })
+          }
+
+        } catch (err) {
+          res.json({
+            success: false,
+            errors: err
+          })
+        }
+      });
   }
 }
