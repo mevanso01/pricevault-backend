@@ -4,21 +4,21 @@ import * as Mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as md5 from 'md5';
 import * as jwt from 'jsonwebtoken';
-import * as twilioClient from 'twilio';
 
 import User from "../../models/User";
 import Mailer from '../../utils/Mailer';
+import Twilio from '../../utils/Twilio';
 
 export default class AuthController {
   router: any = null;
   authMiddleware: any = null;
   saltRounds: Number = 10;
-  twilioClient: any = null;
+  twilioClient: Twilio = null;
 
   constructor(authMiddleware: any = null) {
     this.router = express.Router();
     this.authMiddleware = authMiddleware;
-    this.twilioClient = twilioClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    this.twilioClient = new Twilio();
     this.configure();
   }
 
@@ -189,22 +189,19 @@ export default class AuthController {
             role: user.role
           };
 
-          // Send phone verification code
+          // If user has registered phonenumber, send phone verification code
           try {
-            // await this.twilioClient
-            //   .verify
-            //   .services(process.env.TWILIO_SERVICE_ID)
-            //   .verifications
-            //   .create({
-            //     to: `+${user.phone || process.env.TWILIO_TEST_NUMBER}`,
-            //     channel: 'sms'
-            //   })
+            const enabledVerify = user.phone ? true : false;
+
+            if (enabledVerify) {
+              await this.twilioClient.sendOTP(user.phone);
+            }
 
             res.json({
               success: true,
               access_token,
               user: res_user,
-              enabledVerify: true
+              enabledVerify
             })
           } catch (err) {
             console.log(err);
@@ -266,8 +263,61 @@ export default class AuthController {
       })
     });
 
-    // Verify phone code
-    this.router.post('/verify',
+    /**
+     * POST: Send OTP
+     */
+    this.router.post('/send-otp',
+      body('userId').notEmpty(),
+      async (req: express.Request, res: express.Response) => {
+        // Validate request payload
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.json({
+            success: false,
+            errors: ['Invalid request payload']
+          })
+        }
+
+        try {
+          const { userId } = req.body;
+
+          const user = await User.findOne({
+            _id: userId
+          }).exec();
+
+          if (!user) {
+            return res.json({
+              success: false,
+              errors: ['Not user found!']
+            });
+          }
+
+          try {
+            await this.twilioClient.sendOTP(user.phone);
+
+            res.json({
+              success: true,
+            })
+          } catch (err) {
+            console.log(err);
+            res.json({
+              success: false,
+              errors: ['Failed to send verification code']
+            })
+          }
+
+        } catch (err) {
+          res.json({
+            success: false,
+            errors: err
+          })
+        }
+      });
+
+    /**
+     * POST: Verify OTP
+     */
+    this.router.post('/verify-otp',
       body('userId').notEmpty(),
       body('code').notEmpty(),
       async (req: express.Request, res: express.Response) => {
@@ -305,14 +355,7 @@ export default class AuthController {
           };
 
           try {
-            // await this.twilioClient
-            //   .verify
-            //   .services(process.env.TWILIO_SERVICE_ID)
-            //   .verificationChecks
-            //   .create({
-            //     to: `+${user.phone || process.env.TWILIO_TEST_NUMBER}`,
-            //     code: code
-            //   })
+            await this.twilioClient.verifyOTP(user.phone, code);
 
             res.json({
               success: true,

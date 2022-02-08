@@ -25,8 +25,6 @@ class AllStrikesFunc {
     }
     const userMeanStd = this.getUserMeanStd(meanStd, userSubmission);
     const stdAnaly = this.getStdAnalysis(userMeanStd, userSubmission);
-    console.log(stdAnaly);
-
     const stdSum = this.getStdSum(stdAnaly);
     const result = this.getFinalResult(stdSum);
     return result;

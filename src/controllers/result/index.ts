@@ -97,7 +97,6 @@ export default class ResultController {
           // Call main calculation function
           const Calc = new AllStrikesFunc(lUserId, tradesByInsType);
           const result = Calc.main(data);
-          console.log(result);
 
           res.json({
             success: true,
