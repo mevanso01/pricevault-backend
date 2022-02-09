@@ -194,7 +194,8 @@ export default class AuthController {
             const enabledVerify = (user.phone && user.tfa_enable) ? true : false;
 
             if (enabledVerify) {
-              await this.twilioClient.sendOTP(user.phone);
+              const sent = await this.twilioClient.sendOTP(user.phone);
+              console.log(sent);
             }
 
             res.json({
@@ -293,7 +294,8 @@ export default class AuthController {
           }
 
           try {
-            await this.twilioClient.sendOTP(user.phone);
+            const sent = await this.twilioClient.sendOTP(user.phone);
+            console.log(sent);
 
             res.json({
               success: true,
@@ -355,13 +357,20 @@ export default class AuthController {
           };
 
           try {
-            await this.twilioClient.verifyOTP(user.phone, code);
-
-            res.json({
-              success: true,
-              access_token,
-              user: res_user
-            })
+            const verify = await this.twilioClient.verifyOTP(user.phone, code);
+            console.log(verify);
+            if (verify["status"] == 'approved') {
+              res.json({
+                success: true,
+                access_token,
+                user: res_user
+              })
+            } else {
+              res.json({
+                success: false,
+                errors: ['The verification code is wrong.']
+              })
+            }
           } catch (err) {
             console.log(err);
             res.json({
