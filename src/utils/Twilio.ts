@@ -9,12 +9,13 @@ class Twilio {
 
   sendOTP(phone: String) {
     return new Promise((resolve, reject) => {
+      const phoneNumber = phone.charAt(0) == '+' ? phone : `+${phone}`;
       this.client
         .verify
         .services(process.env.TWILIO_SERVICE_ID)
         .verifications
         .create({
-          to: `+${phone}`,
+          to: phoneNumber,
           channel: 'sms'
         })
         .then((data: any) => {
@@ -28,12 +29,13 @@ class Twilio {
 
   verifyOTP(phone: String, code: String) {
     return new Promise((resolve, reject) => {
+      const phoneNumber = phone.charAt(0) == '+' ? phone : `+${phone}`;
       this.client
         .verify
         .services(process.env.TWILIO_SERVICE_ID)
         .verificationChecks
         .create({
-          to: `+${phone}`,
+          to: phoneNumber,
           code: code
         })
         .then((data: any) => {

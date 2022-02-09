@@ -38,6 +38,9 @@ const user = new Mongoose.Schema({
   },
   sms_exp_at: {
     type: Date
+  },
+  tfa_enable: {
+    type: Boolean
   }
 })
 

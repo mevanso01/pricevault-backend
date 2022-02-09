@@ -191,7 +191,7 @@ export default class AuthController {
 
           // If user has registered phonenumber, send phone verification code
           try {
-            const enabledVerify = user.phone ? true : false;
+            const enabledVerify = (user.phone && user.tfa_enable) ? true : false;
 
             if (enabledVerify) {
               await this.twilioClient.sendOTP(user.phone);
