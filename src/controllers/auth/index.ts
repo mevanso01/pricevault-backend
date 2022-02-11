@@ -4,6 +4,8 @@ import * as Mongoose from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as md5 from 'md5';
 import * as jwt from 'jsonwebtoken';
+import * as moment from 'moment';
+import 'moment-timezone';
 
 import User from "../../models/User";
 import Mailer from '../../utils/Mailer';
@@ -194,8 +196,24 @@ export default class AuthController {
             const enabledVerify = (user.phone && user.tfa_enable) ? true : false;
 
             if (enabledVerify) {
-              const sent = await this.twilioClient.sendOTP(user.phone);
-              console.log(sent);
+              const code = this.twilioClient.generateOTP(6);
+              const sent = await this.twilioClient.sendOTP(user.phone, code);
+              if (!sent["sid"]) {
+                return res.json({
+                  success: false,
+                  errors: ['Cannot send message to the number.']
+                })
+              }
+
+              // Update OTP code into database
+              const TWILIO_2FA_TTL = +(process.env.TWILIO_2FA_TTL);
+              const sms_exp_at = moment().add(TWILIO_2FA_TTL, 'minutes');
+              await User.findByIdAndUpdate(user._id,
+                {
+                  sms_token: code,
+                  sms_exp_at: sms_exp_at
+                }
+              );
             }
 
             res.json({
@@ -208,7 +226,7 @@ export default class AuthController {
             console.log(err);
             res.json({
               success: false,
-              errors: ['Failed to send verification code']
+              errors: ['Failed to send verification code.']
             })
           }
 
@@ -294,8 +312,24 @@ export default class AuthController {
           }
 
           try {
-            const sent = await this.twilioClient.sendOTP(user.phone);
-            console.log(sent);
+            const code = this.twilioClient.generateOTP(6);
+            const sent = await this.twilioClient.sendOTP(user.phone, code);
+            if (!sent["sid"]) {
+              return res.json({
+                success: false,
+                errors: ['Cannot send message to the number.']
+              })
+            }
+
+            // Update OTP code into database
+            const TWILIO_2FA_TTL = +(process.env.TWILIO_2FA_TTL);
+            const sms_exp_at = moment().add(TWILIO_2FA_TTL, 'minutes');
+            await User.findByIdAndUpdate(user._id,
+              {
+                sms_token: code,
+                sms_exp_at: sms_exp_at
+              }
+            );
 
             res.json({
               success: true,
@@ -304,7 +338,7 @@ export default class AuthController {
             console.log(err);
             res.json({
               success: false,
-              errors: ['Failed to send verification code']
+              errors: ['Failed to send verification code.']
             })
           }
 
@@ -339,6 +373,24 @@ export default class AuthController {
             _id: userId
           }).exec();
 
+          // Check if the code is correct or not
+          if (user.sms_token !== code) {
+            return res.json({
+              success: false,
+              errors: ['The verification code is wrong.']
+            })
+          }
+
+          // Check if the code was expired or not
+          const now = moment();
+          if (user.sms_exp_at < now) {
+            return res.json({
+              success: false,
+              errors: ['The verification code was expired.']
+            })
+          }
+
+          // Success verify
           const jwt_ttl: any = process.env.JWT_TTL || 60;
           const access_token = await jwt.sign({
             id: user._id,
@@ -356,29 +408,11 @@ export default class AuthController {
             role: user.role
           };
 
-          try {
-            const verify = await this.twilioClient.verifyOTP(user.phone, code);
-            console.log(verify);
-            if (verify["status"] == 'approved') {
-              res.json({
-                success: true,
-                access_token,
-                user: res_user
-              })
-            } else {
-              res.json({
-                success: false,
-                errors: ['The verification code is wrong.']
-              })
-            }
-          } catch (err) {
-            console.log(err);
-            res.json({
-              success: false,
-              errors: ['Failed to verify the code']
-            })
-          }
-
+          res.json({
+            success: true,
+            access_token,
+            user: res_user
+          })
         } catch (err) {
           res.json({
             success: false,

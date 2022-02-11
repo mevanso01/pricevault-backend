@@ -7,39 +7,22 @@ class Twilio {
     this.client = twilioClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
   }
 
-  sendOTP(phone: String) {
+  sendOTP(phone: String, code: String) {
     return new Promise((resolve, reject) => {
+      const twilioCaller = (process.env.TWILIO_PHONE_NUMBER.charAt(0) == '+')
+        ? process.env.TWILIO_PHONE_NUMBER
+        : `+${process.env.TWILIO_PHONE_NUMBER}`;
       const phoneNumber = phone.charAt(0) == '+' ? phone : `+${phone}`;
-      this.client
-        .verify
-        .services(process.env.TWILIO_SERVICE_ID)
-        .verifications
-        .create({
-          to: phoneNumber,
-          channel: 'sms'
-        })
-        .then((data: any) => {
-          resolve(data);
-        })
-        .catch((e: any) => {
-          reject(e)
-        });
-    });
-  }
 
-  verifyOTP(phone: String, code: String) {
-    return new Promise((resolve, reject) => {
-      const phoneNumber = phone.charAt(0) == '+' ? phone : `+${phone}`;
       this.client
-        .verify
-        .services(process.env.TWILIO_SERVICE_ID)
-        .verificationChecks
+        .messages
         .create({
-          to: phoneNumber,
-          code: code
+          body: 'Your pricevault-2fa-service verification code is: ' + code,
+          from: twilioCaller,
+          to: phoneNumber
         })
         .then((data: any) => {
-          resolve(data);
+          resolve(data)
         })
         .catch((e: any) => {
           reject(e)
@@ -49,7 +32,7 @@ class Twilio {
 
   generateOTP(digit: Number) {
     // Declare a string variable 
-    const string = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const string = '0123456789';
     let OTP = '';
     // Find the length of string
     const len = string.length;
